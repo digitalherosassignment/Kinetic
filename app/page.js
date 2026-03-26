@@ -1,9 +1,23 @@
 import Link from "next/link";
 import Navbar from "@/src/frontend/components/layout/Navbar";
 import Footer from "@/src/frontend/components/layout/Footer";
-import MobileNav from "@/src/frontend/components/layout/MobileNav";
+import { createAdminClient } from "@/src/backend/lib/supabase/admin";
 
-export default function HomePage() {
+export default async function HomePage() {
+  const admin = createAdminClient();
+  const { data: charities } = await admin
+    .from("charities")
+    .select("*")
+    .order("is_featured", { ascending: false })
+    .order("total_raised", { ascending: false })
+    .limit(3);
+
+  const featuredCharities = charities || [];
+  const totalRaised = featuredCharities.reduce(
+    (sum, charity) => sum + Number(charity.total_raised || 0),
+    0
+  );
+
   return (
     <>
       <Navbar />
@@ -50,10 +64,10 @@ export default function HomePage() {
               {/* Overlapping Stat Card */}
               <div className="absolute -bottom-10 -left-10 md:-left-20 bg-primary-container p-8 text-white max-w-[280px] shadow-2xl">
                 <span className="text-secondary-fixed-dim font-black text-4xl block mb-2">
-                  $4.2M+
+                  ${(totalRaised / 1000).toFixed(1)}K+
                 </span>
                 <p className="font-label text-xs tracking-widest uppercase opacity-70">
-                  Contributed to global initiatives this quarter
+                  Raised across the current featured charities
                 </p>
               </div>
             </div>
@@ -165,57 +179,43 @@ export default function HomePage() {
               </Link>
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-              {[
-                {
-                  name: "Ocean Kinetic",
-                  desc: "Removing plastic waste from coastal ecosystems through autonomous recovery technology.",
-                  percent: 82,
-                  metric: "12,400 Tons Recovered",
-                  img: "https://lh3.googleusercontent.com/aida-public/AB6AXuDsBCzLcavLUso1p31QLTfVMsdPOU79dSVvKwaEr99VK8l9q523UecFSS4edct6WEfD-KB_HSs5znSDlyoySzkhXjmgZk0G1eiwD6kQS-hLkGXZvXENzeyfHdzip843lJWlvR8_90GnQpcMTvo5t1VV9M1XOMmT77hHoWjd26Y85NVvbI4h5V-A1dGEK6-HiJJafjjkpOJqcRm1zsyKe422Ife4fa58vt8EyrznfyfzY7K5a5CXpXo_7nuqWcE689bBJDZ4IWmcYFc",
-                },
-                {
-                  name: "Root Momentum",
-                  desc: "Restoring critical biodiverse forests in sub-Saharan Africa to combat desertification.",
-                  percent: 45,
-                  metric: "2.1M Trees Planted",
-                  img: "https://lh3.googleusercontent.com/aida-public/AB6AXuBvS3VYZu3BbyFhamoFryttwr8ED67mLiJMp_UTwW51biuJxSbYqt7G7ILNp-M5Ztq7f-4zy_qOAN9A37M-XgddClyDPcvvFLpSLF7Dfq12cghoeP6p0lJhyQaYnmqGtVcT0FzKeSaGTSIz2PbyqW2Hbd2DjTI1xj7Jo2RvwHoCHtxHnrBExm9M1SyJ_L2uL98uU6jnhbLRymjX-gpnmyh6baCCMy1FruSuZE8oxDym8fNYk2AKbOnAfcH76fyDwI8_l8yftDOKDQ0",
-                },
-                {
-                  name: "Alpha Scholar",
-                  desc: "Providing high-performance educational tools to underprivileged STEM students worldwide.",
-                  percent: 68,
-                  metric: "15,000 Scholarships",
-                  img: "https://lh3.googleusercontent.com/aida-public/AB6AXuC_Pp5-VaEnq6M3RgicEhPWG8oBeuIVhVnYwABkeXr9PMWaGJqEeBpDRc0nHQ2tApaPD38MmwZAoGv7yb7PquBbI-EXiPJyeDpWkkpq26MtWUAUikw7rC3QDCDzg69j8cEYip5gIYv8E7avNnQ1XuJJgUT6ZDXqLyEOfv0zYTiP6Z9sqoGwXFOB6qUkOjJU63AQjnAUmjSvixOfPrCLkEVsHmVpqqc3AF-pkewktJev6RB-WtE5sYdchNozztI_SBKw9NoeaK_qHIM",
-                },
-              ].map((charity) => (
+              {featuredCharities.map((charity) => (
                 <div key={charity.name} className="flex flex-col gap-6">
                   <div className="aspect-[4/3] bg-white overflow-hidden">
-                    <img
-                      className="w-full h-full object-cover"
-                      alt={charity.name}
-                      src={charity.img}
-                    />
+                    {charity.image_url ? (
+                      <img
+                        className="w-full h-full object-cover"
+                        alt={charity.name}
+                        src={charity.image_url}
+                      />
+                    ) : (
+                      <div className="w-full h-full kinetic-gradient"></div>
+                    )}
                   </div>
                   <div>
                     <h3 className="font-headline font-bold text-2xl uppercase mb-2">
                       {charity.name}
                     </h3>
                     <p className="text-on-surface-variant text-sm mb-6 leading-relaxed">
-                      {charity.desc}
+                      {charity.description}
                     </p>
                     <div className="space-y-2">
                       <div className="flex justify-between text-xs font-bold tracking-widest uppercase">
                         <span>Impact Goal</span>
-                        <span className="text-secondary">{charity.percent}%</span>
+                        <span className="text-secondary">
+                          {charity.impact_goal_percent || 0}%
+                        </span>
                       </div>
                       <div className="impact-track w-full">
                         <div
                           className="impact-fill"
-                          style={{ width: `${charity.percent}%` }}
+                          style={{ width: `${charity.impact_goal_percent || 0}%` }}
                         ></div>
                       </div>
                       <span className="text-[10px] text-on-surface-variant uppercase tracking-tighter">
-                        {charity.metric}
+                        {charity.impact_value
+                          ? `${charity.impact_value} ${charity.impact_metric || ""}`.trim()
+                          : charity.impact_metric || "Live impact updates"}
                       </span>
                     </div>
                   </div>
@@ -260,7 +260,6 @@ export default function HomePage() {
         </section>
       </main>
       <Footer />
-      <MobileNav />
     </>
   );
 }

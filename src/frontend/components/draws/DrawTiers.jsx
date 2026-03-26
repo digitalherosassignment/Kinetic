@@ -1,47 +1,125 @@
-export default function DrawTiers() {
-  const tiers = [
-    { label: "Tier 1 Elite", icon: "stars", numbers: [14, 22, 31, 42, 45], winners: 0, prize: "Rolled Over", allMatch: true },
-    { label: "Tier 2 Premier", icon: "auto_awesome", numbers: [14, 22, 31, 45, null], winners: 12, prize: "$2,450", allMatch: false },
-    { label: "Tier 3 Kinetic", icon: "bolt", numbers: [14, 22, 31, null, null], winners: 148, prize: "$120", allMatch: false },
-  ];
+import { formatCurrency } from "@/src/backend/lib/utils";
+
+function getTierMeta(tier, latestDraw, winners) {
+  const tierWinners = winners.filter((winner) => winner.match_tier === tier);
+  const averagePrize =
+    tierWinners.length > 0
+      ? tierWinners.reduce(
+          (sum, winner) => sum + Number(winner.prize_amount || 0),
+          0
+        ) / tierWinners.length
+      : 0;
+
+  const numberMask =
+    tier === 5
+      ? latestDraw.winning_numbers
+      : tier === 4
+        ? [...latestDraw.winning_numbers.slice(0, 4), null]
+        : [...latestDraw.winning_numbers.slice(0, 3), null, null];
+
+  return {
+    5: {
+      label: "5-Number Match",
+      icon: "stars",
+      numbers: numberMask,
+      winners: tierWinners.length,
+      prize:
+        tierWinners.length > 0
+          ? formatCurrency(averagePrize)
+          : latestDraw.jackpot_rollover > 0
+            ? "Rolled Over"
+            : formatCurrency(latestDraw.tier1_pool),
+      caption: tierWinners.length > 0 ? "Prize Each" : "Prize Pool",
+    },
+    4: {
+      label: "4-Number Match",
+      icon: "auto_awesome",
+      numbers: numberMask,
+      winners: tierWinners.length,
+      prize: tierWinners.length > 0 ? formatCurrency(averagePrize) : "No Winners",
+      caption: "Prize Each",
+    },
+    3: {
+      label: "3-Number Match",
+      icon: "bolt",
+      numbers: numberMask,
+      winners: tierWinners.length,
+      prize: tierWinners.length > 0 ? formatCurrency(averagePrize) : "No Winners",
+      caption: "Prize Each",
+    },
+  }[tier];
+}
+
+export default function DrawTiers({ latestDraw, winners = [] }) {
+  if (!latestDraw) {
+    return null;
+  }
+
+  const tiers = [5, 4, 3].map((tier) => getTierMeta(tier, latestDraw, winners));
 
   return (
     <section className="px-6 mb-24">
       <div className="max-w-7xl mx-auto">
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
           <div>
-            <h2 className="font-headline text-4xl font-bold tracking-tight">July Results</h2>
-            <p className="text-outline mt-2">Drawn July 31, 2024 • Draw ID: #KNC-2024-07</p>
+            <h2 className="font-headline text-4xl font-bold tracking-tight">
+              Latest Results
+            </h2>
+            <p className="text-outline mt-2">
+              Drawn {new Date(latestDraw.draw_date).toLocaleDateString("en-US")} •
+              Draw ID: #{latestDraw.draw_id}
+            </p>
           </div>
-          <div className="flex bg-surface-container-low p-1 rounded-lg">
-            <button className="px-6 py-2 bg-white text-primary font-bold text-sm rounded shadow-sm">Monthly</button>
-            <button className="px-6 py-2 text-outline font-bold text-sm">Quarterly</button>
+          <div className="px-4 py-2 bg-surface-container-low rounded-lg text-sm font-bold">
+            {latestDraw.draw_type === "algorithmic"
+              ? "Algorithmic Draw"
+              : "Random Draw"}
           </div>
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {tiers.map((tier) => (
-            <div key={tier.label} className="bg-surface-container-lowest p-8 rounded-xl border border-outline-variant/10 group hover:border-secondary transition-all">
+            <div
+              key={tier.label}
+              className="bg-surface-container-lowest p-8 rounded-xl border border-outline-variant/10 group hover:border-secondary transition-all"
+            >
               <div className="flex justify-between items-start mb-12">
-                <span className="font-label text-xs font-bold tracking-widest text-secondary uppercase">{tier.label}</span>
-                <span className="material-symbols-outlined text-outline group-hover:text-secondary transition-colors">{tier.icon}</span>
+                <span className="font-label text-xs font-bold tracking-widest text-secondary uppercase">
+                  {tier.label}
+                </span>
+                <span className="material-symbols-outlined text-outline group-hover:text-secondary transition-colors">
+                  {tier.icon}
+                </span>
               </div>
               <div className="flex gap-3 mb-12 justify-center">
-                {tier.numbers.map((n, i) => (
-                  <div key={i} className={`w-12 h-12 rounded-full border-2 flex items-center justify-center font-headline font-bold text-xl ${
-                    n ? "border-primary" : "border-outline-variant/30 text-outline-variant"
-                  }`}>
-                    {n || "?"}
+                {tier.numbers.map((number, index) => (
+                  <div
+                    key={`${tier.label}-${index}`}
+                    className={`w-12 h-12 rounded-full border-2 flex items-center justify-center font-headline font-bold text-xl ${
+                      number
+                        ? "border-primary"
+                        : "border-outline-variant/30 text-outline-variant"
+                    }`}
+                  >
+                    {number || "?"}
                   </div>
                 ))}
               </div>
               <div className="pt-8 border-t border-outline-variant/20 flex justify-between items-center">
                 <div>
-                  <span className="block text-xs text-outline uppercase tracking-widest">Winners</span>
-                  <span className="text-2xl font-headline font-bold">{tier.winners}</span>
+                  <span className="block text-xs text-outline uppercase tracking-widest">
+                    Winners
+                  </span>
+                  <span className="text-2xl font-headline font-bold">
+                    {tier.winners}
+                  </span>
                 </div>
                 <div className="text-right">
-                  <span className="block text-xs text-outline uppercase tracking-widest">{tier.allMatch ? "Prize Pool" : "Prize Each"}</span>
-                  <span className="text-2xl font-headline font-bold text-secondary">{tier.prize}</span>
+                  <span className="block text-xs text-outline uppercase tracking-widest">
+                    {tier.caption}
+                  </span>
+                  <span className="text-2xl font-headline font-bold text-secondary">
+                    {tier.prize}
+                  </span>
                 </div>
               </div>
             </div>

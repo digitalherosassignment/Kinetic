@@ -70,6 +70,9 @@ export default function AdminWinnersTable({ winners = [] }) {
                 Verification
               </th>
               <th className="text-left p-4 text-[10px] font-bold text-outline uppercase tracking-widest">
+                Proof
+              </th>
+              <th className="text-left p-4 text-[10px] font-bold text-outline uppercase tracking-widest">
                 Payment
               </th>
               <th className="text-right p-4 text-[10px] font-bold text-outline uppercase tracking-widest">
@@ -121,6 +124,22 @@ export default function AdminWinnersTable({ winners = [] }) {
                     </span>
                     {winner.verification_status}
                   </span>
+                </td>
+                <td className="p-4">
+                  {winner.proof_url ? (
+                    <a
+                      href={winner.proof_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-[10px] font-bold uppercase tracking-widest text-secondary"
+                    >
+                      View
+                    </a>
+                  ) : (
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-outline">
+                      Missing
+                    </span>
+                  )}
                 </td>
                 <td className="p-4">
                   <span

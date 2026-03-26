@@ -3,6 +3,7 @@ import Footer from "@/src/frontend/components/layout/Footer";
 import MobileNav from "@/src/frontend/components/layout/MobileNav";
 import Navbar from "@/src/frontend/components/layout/Navbar";
 import SignOutButton from "@/src/frontend/components/profile/SignOutButton";
+import WinnerProofManager from "@/src/frontend/components/profile/WinnerProofManager";
 import { isSubscriptionActive, requireUser } from "@/src/backend/lib/auth";
 import { formatCurrency, formatDate } from "@/src/backend/lib/utils";
 
@@ -27,7 +28,9 @@ export default async function ProfilePage() {
         .maybeSingle(),
       admin
         .from("winners")
-        .select("prize_amount, payment_status")
+        .select(
+          "id, prize_amount, payment_status, verification_status, proof_url, match_tier, draws(draw_id)"
+        )
         .eq("user_id", user.id),
       admin
         .from("donations")
@@ -221,6 +224,8 @@ export default async function ProfilePage() {
             </div>
           ) : null}
         </div>
+
+        <WinnerProofManager winners={winnings} />
 
         <SignOutButton />
       </main>

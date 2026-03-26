@@ -1,21 +1,24 @@
-import Navbar from "@/src/frontend/components/layout/Navbar";
 import Footer from "@/src/frontend/components/layout/Footer";
 import MobileNav from "@/src/frontend/components/layout/MobileNav";
-import CharityHero from "@/src/frontend/components/charity/CharityHero";
-import CharityGrid from "@/src/frontend/components/charity/CharityGrid";
-import CampaignList from "@/src/frontend/components/charity/CampaignList";
+import Navbar from "@/src/frontend/components/layout/Navbar";
+import CharityDirectory from "@/src/frontend/components/charity/CharityDirectory";
+import { createAdminClient } from "@/src/backend/lib/supabase/admin";
 import { getAuthenticatedContext } from "@/src/backend/lib/auth";
 
 export default async function CharityPage() {
   const { user } = await getAuthenticatedContext();
+  const admin = createAdminClient();
+  const { data: charities } = await admin
+    .from("charities")
+    .select("*")
+    .order("is_featured", { ascending: false })
+    .order("total_raised", { ascending: false });
 
   return (
     <>
       <Navbar user={!!user} />
       <main className="pt-24 pb-32">
-        <CharityHero />
-        <CharityGrid />
-        <CampaignList />
+        <CharityDirectory charities={charities || []} />
       </main>
       <Footer />
       {user ? <MobileNav /> : null}
