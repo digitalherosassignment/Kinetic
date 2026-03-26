@@ -1,6 +1,5 @@
 import Navbar from "@/src/frontend/components/layout/Navbar";
 import Footer from "@/src/frontend/components/layout/Footer";
-import MobileNav from "@/src/frontend/components/layout/MobileNav";
 import Link from "next/link";
 
 export default function DashboardPage() {
@@ -196,7 +195,6 @@ export default function DashboardPage() {
         </div>
       </main>
       <Footer />
-      <MobileNav />
     </>
   );
 }

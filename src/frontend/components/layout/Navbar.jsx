@@ -20,7 +20,7 @@ export default function Navbar({ user }) {
       <div className="flex justify-between items-center px-6 py-4 w-full max-w-7xl mx-auto">
         <div className="flex items-center gap-4">
           <span 
-            className="material-symbols-outlined text-black cursor-pointer hover:opacity-70 transition-opacity"
+            className="md:hidden material-symbols-outlined text-black cursor-pointer hover:opacity-70 transition-opacity"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           >
             {isMobileMenuOpen ? "close" : "menu"}
