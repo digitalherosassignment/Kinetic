@@ -1,26 +1,38 @@
-import { createClient } from "@/src/backend/lib/supabase/server";
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { ensureProfile } from "@/src/backend/lib/auth";
+import { createAdminClient } from "@/src/backend/lib/supabase/admin";
+import { createClient } from "@/src/backend/lib/supabase/server";
 
 const scoreSchema = z.object({
   score: z.number().int().min(1).max(45),
-  played_at: z.string().optional(),
-  course_name: z.string().optional(),
+  played_at: z.string().min(1),
+  course_name: z.string().trim().min(1).optional(),
 });
 
-export async function GET() {
+async function getAuthenticatedUser() {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  return user;
+}
+
+export async function GET() {
+  const user = await getAuthenticatedUser();
 
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { data: scores, error } = await supabase
+  const admin = createAdminClient();
+  const { data: scores, error } = await admin
     .from("scores")
     .select("*")
     .eq("user_id", user.id)
     .order("played_at", { ascending: false })
+    .order("created_at", { ascending: false })
     .limit(5);
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -28,17 +40,19 @@ export async function GET() {
 }
 
 export async function POST(request) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getAuthenticatedUser();
 
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const admin = createAdminClient();
+  await ensureProfile(user, admin);
+
   let body;
   try {
     body = await request.json();
-  } catch (e) {
+  } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
@@ -49,25 +63,38 @@ export async function POST(request) {
 
   const { score, played_at, course_name } = parseResult.data;
 
-  // Check existing scores count
-  const { data: existing } = await supabase
+  const { data: existing, error: existingError } = await admin
     .from("scores")
-    .select("id, played_at")
+    .select("id, played_at, created_at")
     .eq("user_id", user.id)
-    .order("played_at", { ascending: true });
+    .order("played_at", { ascending: true })
+    .order("created_at", { ascending: true });
 
-  // If 5 scores exist, delete the oldest
-  if (existing && existing.length >= 5) {
-    await supabase.from("scores").delete().eq("id", existing[0].id);
+  if (existingError) {
+    return NextResponse.json({ error: existingError.message }, { status: 500 });
   }
 
-  // Insert new score
-  const { data, error } = await supabase.from("scores").insert({
-    user_id: user.id,
-    score,
-    played_at: played_at || new Date().toISOString().split("T")[0],
-    course_name: course_name || null,
-  }).select().single();
+  if (existing && existing.length >= 5) {
+    const { error: deleteError } = await admin
+      .from("scores")
+      .delete()
+      .eq("id", existing[0].id);
+
+    if (deleteError) {
+      return NextResponse.json({ error: deleteError.message }, { status: 500 });
+    }
+  }
+
+  const { data, error } = await admin
+    .from("scores")
+    .insert({
+      user_id: user.id,
+      score,
+      played_at,
+      course_name: course_name || null,
+    })
+    .select()
+    .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ score: data }, { status: 201 });

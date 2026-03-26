@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { publishDraw } from "@/src/backend/lib/draw-service";
 import { getAuthenticatedContext } from "@/src/backend/lib/auth";
-import { buildDrawResult } from "@/src/backend/lib/draw-service";
 
-const simulateSchema = z.object({
+const publishSchema = z.object({
   draw_type: z.enum(["random", "algorithmic"]).optional(),
   jackpot_rollover: z.number().min(0).optional(),
+  draw_date: z.string().optional(),
 });
 
 export async function POST(request) {
@@ -26,30 +27,22 @@ export async function POST(request) {
     body = {};
   }
 
-  const parsed = simulateSchema.safeParse(body);
+  const parsed = publishSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.format() }, { status: 400 });
   }
 
   try {
-    const simulation = await buildDrawResult(admin, {
+    const result = await publishDraw(admin, {
       drawType: parsed.data.draw_type || "random",
       jackpotRollover: parsed.data.jackpot_rollover,
+      drawDate: parsed.data.draw_date,
     });
 
-    return NextResponse.json({
-      simulation: true,
-      drawType: simulation.drawType,
-      winningNumbers: simulation.winningNumbers,
-      totalEntries: simulation.totalEntries,
-      totalPool: simulation.totalPool,
-      tierBreakdown: simulation.tierBreakdown,
-      prizeDistribution: simulation.prizeDistribution,
-      jackpotRollover: simulation.jackpotRollover,
-    });
+    return NextResponse.json(result, { status: 201 });
   } catch (error) {
     return NextResponse.json(
-      { error: error.message || "Unable to simulate draw." },
+      { error: error.message || "Unable to publish draw." },
       { status: 500 }
     );
   }

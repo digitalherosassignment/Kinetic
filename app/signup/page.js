@@ -1,17 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/src/backend/lib/supabase/client";
 
-export default function SignupPage() {
+function SignupForm() {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirect = searchParams.get("redirect");
 
   async function handleSignup(e) {
     e.preventDefault();
@@ -45,7 +47,9 @@ export default function SignupPage() {
       });
     }
 
-    router.push("/login");
+    router.push(
+      redirect ? `/login?redirect=${encodeURIComponent(redirect)}` : "/login"
+    );
     router.refresh();
   }
 
@@ -154,5 +158,19 @@ export default function SignupPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-surface flex items-center justify-center">
+          <span className="font-headline font-black text-xl">KINETIC</span>
+        </div>
+      }
+    >
+      <SignupForm />
+    </Suspense>
   );
 }

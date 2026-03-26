@@ -135,6 +135,13 @@ CREATE POLICY "Users can insert own profile" ON public.profiles FOR INSERT WITH 
 -- Subscriptions: users see own
 CREATE POLICY "Users can view own subscriptions" ON public.subscriptions FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Users can insert own subscriptions" ON public.subscriptions FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update own subscriptions" ON public.subscriptions FOR UPDATE USING (auth.uid() = user_id);
+
+-- User charities: users manage own selection
+CREATE POLICY "Users can view own charity selection" ON public.user_charities FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert own charity selection" ON public.user_charities FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update own charity selection" ON public.user_charities FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Users can delete own charity selection" ON public.user_charities FOR DELETE USING (auth.uid() = user_id);
 
 -- Charities: public read
 CREATE POLICY "Charities are viewable by everyone" ON public.charities FOR SELECT USING (true);
@@ -153,8 +160,24 @@ CREATE POLICY "Admins can manage draws" ON public.draws FOR ALL USING (
   EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
 );
 
+-- Draw entries: users see own, admins manage all
+CREATE POLICY "Users can view own draw entries" ON public.draw_entries FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Admins can manage draw entries" ON public.draw_entries FOR ALL USING (
+  EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+);
+
 -- Winners: public read
 CREATE POLICY "Winners are viewable by everyone" ON public.winners FOR SELECT USING (true);
+CREATE POLICY "Admins can update winners" ON public.winners FOR UPDATE USING (
+  EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+);
+
+-- Donations: users see own, admins manage all
+CREATE POLICY "Users can view own donations" ON public.donations FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert own donations" ON public.donations FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Admins can manage donations" ON public.donations FOR ALL USING (
+  EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+);
 
 -- Seed sample charities
 INSERT INTO public.charities (name, description, category, image_url, impact_goal_percent, impact_metric, impact_value, is_featured, total_raised) VALUES

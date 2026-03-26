@@ -29,8 +29,7 @@ export async function middleware(request) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Protected user routes
-  const protectedPaths = ["/dashboard", "/scores", "/charity", "/draws", "/profile"];
+  const protectedPaths = ["/dashboard", "/scores", "/profile"];
   const isProtected = protectedPaths.some((p) =>
     request.nextUrl.pathname.startsWith(p)
   );
@@ -40,6 +39,28 @@ export async function middleware(request) {
     url.pathname = "/login";
     url.searchParams.set("redirect", request.nextUrl.pathname);
     return NextResponse.redirect(url);
+  }
+
+  if (isProtected && user) {
+    const { data: subscriptions, error: subscriptionError } = await supabase
+      .from("subscriptions")
+      .select("status, renewal_date, created_at")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(1);
+
+    const latestSubscription = subscriptions?.[0] || null;
+    const hasActiveSubscription =
+      !subscriptionError &&
+      latestSubscription?.status === "active" &&
+      new Date(latestSubscription.renewal_date).getTime() >= Date.now();
+
+    if (!hasActiveSubscription) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/join";
+      url.searchParams.set("redirect", request.nextUrl.pathname);
+      return NextResponse.redirect(url);
+    }
   }
 
   // Admin route protection
@@ -61,7 +82,21 @@ export async function middleware(request) {
 
   // Redirect authenticated users away from auth pages
   if (user && (request.nextUrl.pathname === "/login" || request.nextUrl.pathname === "/signup")) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+    const { data: subscriptions } = await supabase
+      .from("subscriptions")
+      .select("status, renewal_date, created_at")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(1);
+
+    const latestSubscription = subscriptions?.[0] || null;
+    const destination =
+      latestSubscription?.status === "active" &&
+      new Date(latestSubscription.renewal_date).getTime() >= Date.now()
+        ? "/dashboard"
+        : "/join";
+
+    return NextResponse.redirect(new URL(destination, request.url));
   }
 
   return supabaseResponse;
@@ -71,8 +106,6 @@ export const config = {
   matcher: [
     "/dashboard/:path*",
     "/scores/:path*",
-    "/charity/:path*",
-    "/draws/:path*",
     "/profile/:path*",
     "/admin/:path*",
     "/login",

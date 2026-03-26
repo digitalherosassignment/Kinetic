@@ -1,6 +1,6 @@
 export default function DrawTiers() {
   const tiers = [
-    { label: "Tier 1 Elite", icon: "stars", numbers: [14, 22, 31, 45, 50], winners: 0, prize: "Rolled Over", allMatch: true },
+    { label: "Tier 1 Elite", icon: "stars", numbers: [14, 22, 31, 42, 45], winners: 0, prize: "Rolled Over", allMatch: true },
     { label: "Tier 2 Premier", icon: "auto_awesome", numbers: [14, 22, 31, 45, null], winners: 12, prize: "$2,450", allMatch: false },
     { label: "Tier 3 Kinetic", icon: "bolt", numbers: [14, 22, 31, null, null], winners: 148, prize: "$120", allMatch: false },
   ];
