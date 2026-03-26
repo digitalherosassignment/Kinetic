@@ -25,6 +25,7 @@ export default function SignupPage() {
       password,
       options: {
         data: { full_name: fullName },
+        emailRedirectTo: `${window.location.origin}/api/auth/callback`,
       },
     });
 
@@ -44,7 +45,7 @@ export default function SignupPage() {
       });
     }
 
-    router.push("/join");
+    router.push("/login");
     router.refresh();
   }
 
